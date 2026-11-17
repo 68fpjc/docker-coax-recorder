@@ -1,0 +1,112 @@
+services:
+  coaxd:
+    image: ghcr.io/till0196/coax:0.1.5
+    environment:
+      COAXD_LOG: /dev/stdout
+    volumes:
+      - coaxd-run:/run/coaxd
+      - ./coax/firmware:/usr/lib/firmware:ro
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - "c 189:* rmw"
+    healthcheck:
+      test: ["CMD", "coax", "list", "--no-start"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  coax-pcsc:
+    image: ghcr.io/till0196/coax:0.1.5
+    entrypoint: ["coax"]
+    command: ["pcsc", "--no-start", "--idle", "0", "--socket", "/run/coax-pcsc/pcscd.comm"]
+    volumes:
+      - coaxd-run:/run/coaxd
+      - coax-pcsc-run:/run/coax-pcsc
+    depends_on:
+      coaxd:
+        condition: service_healthy
+    restart: unless-stopped
+
+  coax-bin:
+    image: ghcr.io/till0196/coax:0.1.5
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["cp /usr/bin/coax /coax-bin/coax.new && mv -f /coax-bin/coax.new /coax-bin/coax"]
+    volumes:
+      - coax-bin:/coax-bin
+    restart: "no"
+
+  mirakurun:
+    image: chinachu/mirakurun:latest
+    environment:
+      TZ: Asia/Tokyo
+      DISABLE_PCSCD: "1"
+      PCSCLITE_CSOCK_NAME: /run/coax-pcsc/pcscd.comm
+    ports:
+      - "40772:40772"
+    volumes:
+      - coaxd-run:/run/coaxd
+      - coax-pcsc-run:/run/coax-pcsc
+      - coax-bin:/opt/coax-bin:ro
+      - mirakurun-run:/run
+      - ./mirakurun/config:/app-config
+      - ./mirakurun/data:/app-data
+      - ./mirakurun/opt:/opt
+    depends_on:
+      coaxd:
+        condition: service_healthy
+      coax-pcsc:
+        condition: service_started
+      coax-bin:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  mysql:
+    image: mariadb:12.3
+    environment:
+      TZ: Asia/Tokyo
+      MARIADB_DATABASE: epgstation
+      MARIADB_USER: epgstation
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--performance-schema=false", "--binlog_expire_logs_seconds=86400"]
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  epgstation:
+    image: docker-coax-recorder-epgstation:local
+    build:
+      context: .
+      dockerfile: epgstation/Dockerfile
+    environment:
+      TZ: Asia/Tokyo
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    ports:
+      - "8888:8888"
+      - "8889:8889"
+    volumes:
+      - mirakurun-run:/var/run:ro
+      - ./epgstation/config:/app/config:ro
+      - ./epgstation/data:/app/data
+      - ./epgstation/thumbnail:/app/thumbnail
+      - ./epgstation/logs:/app/logs
+      - ./recorded:/app/recorded
+    depends_on:
+      mirakurun:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  coaxd-run:
+  coax-pcsc-run:
+  coax-bin:
+  mirakurun-run:

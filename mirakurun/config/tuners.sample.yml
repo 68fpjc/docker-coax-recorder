@@ -1,0 +1,48 @@
+- name: PX-Q3U4-GR1
+  types:
+    - GR
+  command: /opt/coax-bin/coax tune --no-start --system ISDBT --ch <channel>
+  decoder: arib-b25-stream-test
+- name: PX-Q3U4-GR2
+  types:
+    - GR
+  command: /opt/coax-bin/coax tune --no-start --system ISDBT --ch <channel>
+  decoder: arib-b25-stream-test
+- name: PX-Q3U4-GR3
+  types:
+    - GR
+  command: /opt/coax-bin/coax tune --no-start --system ISDBT --ch <channel>
+  decoder: arib-b25-stream-test
+  isDisabled: true
+- name: PX-Q3U4-GR4
+  types:
+    - GR
+  command: /opt/coax-bin/coax tune --no-start --system ISDBT --ch <channel>
+  decoder: arib-b25-stream-test
+  isDisabled: true
+- name: PX-Q3U4-S1
+  types:
+    - BS
+    - CS
+  command: /opt/coax-bin/coax tune --no-start --system ISDBS --ch <channel>
+  decoder: arib-b25-stream-test
+- name: PX-Q3U4-S2
+  types:
+    - BS
+    - CS
+  command: /opt/coax-bin/coax tune --no-start --system ISDBS --ch <channel>
+  decoder: arib-b25-stream-test
+- name: PX-Q3U4-S3
+  types:
+    - BS
+    - CS
+  command: /opt/coax-bin/coax tune --no-start --system ISDBS --ch <channel>
+  decoder: arib-b25-stream-test
+  isDisabled: true
+- name: PX-Q3U4-S4
+  types:
+    - BS
+    - CS
+  command: /opt/coax-bin/coax tune --no-start --system ISDBS --ch <channel>
+  decoder: arib-b25-stream-test
+  isDisabled: true

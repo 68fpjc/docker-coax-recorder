@@ -1,0 +1,7 @@
+appenders:
+  output:
+    type: stdout
+categories:
+  default:
+    appenders: [output]
+    level: info
